@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Music Player - Jamendo API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .search-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .search-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        input, select, button {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        input {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: 2px solid #007bff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .song-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+        
+        .song-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .song-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        
+        .song-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3em;
+        }
+        
+        .song-info {
+            padding: 20px;
+        }
+        
+        .song-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .song-artist {
+            color: #666;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        
+        .song-duration {
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .current-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .current-player.active {
+            transform: translateY(0);
+        }
+        
+        .player-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .player-info {
+            flex: 1;
+        }
+        
+        .player-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .player-artist {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        audio {
+            flex: 2;
+            max-width: 400px;
+        }
+        
+        .genres {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .genre-tag {
+            background: #e9ecef;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .genre-tag:hover, .genre-tag.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .search-controls {
+                flex-direction: column;
+            }
+            
+            .song-grid {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+            
+            .player-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Free Music Player</h1>
+            <p>Powered by Jamendo - 600,000+ Free Songs</p>
+        </div>
+        
+        <div class="search-section">
+            <div class="search-controls">
+                <input type="text" id="searchInput" placeholder="Search for songs, artists, or albums..." />
+                <select id="genreSelect">
+                    <option value="">All Genres</option>
+                    <option value="pop">Pop</option>
+                    <option value="rock">Rock</option>
+                    <option value="electronic">Electronic</option>
+                    <option value="jazz">Jazz</option>
+                    <option value="classical">Classical</option>
+                    <option value="hiphop">Hip Hop</option>
+                    <option value="metal">Metal</option>
+                    <option value="world">World</option>
+                    <option value="soundtrack">Soundtrack</option>
+                </select>
+                <button onclick="searchMusic()">🔍 Search</button>
+                <button onclick="loadPopular()">🔥 Popular</button>
+            </div>
+            
+            <div class="genres">
+                <div class="genre-tag" onclick="quickSearch('pop')">Pop</div>
+                <div class="genre-tag" onclick="quickSearch('rock')">Rock</div>
+                <div class="genre-tag" onclick="quickSearch('electronic')">Electronic</div>
+                <div class="genre-tag" onclick="quickSearch('jazz')">Jazz</div>
+                <div class="genre-tag" onclick="quickSearch('classical')">Classical</div>
+            </div>
+        </div>
+        
+        <div id="loadingDiv" class="loading" style="display: none;">
+            🎵 Loading amazing music for you...
+        </div>
+        
+        <div id="songsContainer" class="song-grid">
+            <!-- Songs will be loaded here -->
+        </div>
+    </div>
+    
+    <div id="currentPlayer" class="current-player">
+        <div class="player-content">
+            <div class="player-info">
+                <div class="player-title" id="currentTitle">No song selected</div>
+                <div class="player-artist" id="currentArtist"></div>
+            </div>
+            <audio id="audioPlayer" controls>
+                Your browser does not support the audio element.
+            </audio>
+            <button onclick="closePlayer()">✖️</button>
+        </div>
+    </div>
+
+    <script>
+        // Jamendo API client ID (you need to register for your own)
+        const CLIENT_ID = '56d30c95'; // This is a demo client ID - get your own at developer.jamendo.com
+        const BASE_URL = 'https://api.jamendo.com/v3.0';
+        
+        let currentSongs = [];
+        
+        // Load popular music on page load
+        window.onload = function() {
+            loadPopular();
+        };
+        
+        async function searchMusic() {
+            const query = document.getElementById('searchInput').value;
+            const genre = document.getElementById('genreSelect').value;
+            
+            if (!query.trim() && !genre) {
+                alert('Please enter a search term or select a genre');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                let url = `${BASE_URL}/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20`;
+                
+                if (query.trim()) {
+                    url += `&search=${encodeURIComponent(query)}`;
+                }
+                
+                if (genre) {
+                    url += `&tags=${genre}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0) {
+                    currentSongs = data.results;
+                    displaySongs(currentSongs);
+                } else {
+                    document.getElementById('songsContainer').innerHTML = 
+                        '<div class="loading">No songs found. Try different keywords!</div>';
+                }
+            } catch (error) {
+                console.error('Error fetching music:', error);
+                document.getElementById('songsContainer').innerHTML = 
+                    '<div class="loading">Error loading music. Please try again.</div>';
+            }
+            
+            showLoading(false);
+        }
+        
+        async function loadPopular() {
+            showLoading(true);
+            
+            try {
+                const url = `${BASE_URL}/tracks/?client_id=${CLIENT_ID}&format=jsonpretty&limit=20&order=popularity_total`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.results) {
+                    currentSongs = data.results;
+                    displaySongs(currentSongs);
+                }
+            } catch (error) {
+                console.error('Error fetching popular music:', error);
+            }
+            
+            showLoading(false);
+        }
+        
+        function quickSearch(genre) {
+            document.getElementById('genreSelect').value = genre;
+            document.getElementById('searchInput').value = '';
+            
+            // Update active genre tag
+            document.querySelectorAll('.genre-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            searchMusic();
+        }
+        
+        function displaySongs(songs) {
+            const container = document.getElementById('songsContainer');
+            container.innerHTML = '';
+            
+            songs.forEach(song => {
+                const songCard = document.createElement('div');
+                songCard.className = 'song-card';
+                songCard.onclick = () => playSong(song);
+                
+                // Format duration
+                const duration = song.duration ? formatDuration(song.duration) : 'Unknown';
+                
+                songCard.innerHTML = `
+                    <div class="song-image">
+                        ${song.image ? `<img src="${song.image}" alt="${song.name}" style="width:100%;height:100%;object-fit:cover;">` : '🎵'}
+                    </div>
+                    <div class="song-info">
+                        <div class="song-title">${song.name || 'Unknown Title'}</div>
+                        <div class="song-artist">by ${song.artist_name || 'Unknown Artist'}</div>
+                        <div class="song-duration">Duration: ${duration}</div>
+                    </div>
+                `;
+                
+                container.appendChild(songCard);
+            });
+        }
+        
+        function playSong(song) {
+            const audioPlayer = document.getElementById('audioPlayer');
+            const currentPlayer = document.getElementById('currentPlayer');
+            
+            // Update player info
+            document.getElementById('currentTitle').textContent = song.name || 'Unknown Title';
+            document.getElementById('currentArtist').textContent = `by ${song.artist_name || 'Unknown Artist'}`;
+            
+            // Set audio source
+            audioPlayer.src = song.audio;
+            
+            // Show player
+            currentPlayer.classList.add('active');
+            
+            // Auto play
+            audioPlayer.play().catch(e => {
+                console.log('Autoplay prevented:', e);
+                alert('Click the play button to start the music!');
+            });
+        }
+        
+        function closePlayer() {
+            const currentPlayer = document.getElementById('currentPlayer');
+            const audioPlayer = document.getElementById('audioPlayer');
+            
+            audioPlayer.pause();
+            currentPlayer.classList.remove('active');
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingDiv').style.display = show ? 'block' : 'none';
+        }
+        
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMusic();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,21 @@ function Progress() {
 
   return (
     <>
-      
+      <div className="flex items-center max-w-7xl mx-auto gap-10">
+        <div className="flex items-center gap-2 w-full">
+          <p className="text-sm">0:00</p>
+          <div className="bg-gray-500 w-full rounded-lg">
+            <div className="bg-green-500 py-2 rounded-lg" style={{ width: '30%', }}></div>
+          </div>
+          <p className="text-sm">0:00</p>
+        </div>
+        <button type="button" className="w-fit cursor-pointer transition duration-300 transform hover:scale-125">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            fill="currentColor" viewBox="0 0 24 24" >
+            <path d="m6,22h12c1.1,0,2-.9,2-2V4c0-1.1-.9-2-2-2H6c-1.1,0-2,.9-2,2v16c0,1.1.9,2,2,2Zm0-18h12v16H6V4Z"></path><path d="m12,11c-2.21,0-4,1.79-4,4s1.79,4,4,4,4-1.79,4-4-1.79-4-4-4Zm0,6c-1.1,0-2-.9-2-2s.9-2,2-2,2,.9,2,2-.9,2-2,2Z"></path><path d="M12 5A2 2 0 1 0 12 9 2 2 0 1 0 12 5z"></path>
+          </svg>
+        </button>
+      </div>
     </>
   )
 }
