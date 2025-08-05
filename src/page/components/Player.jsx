@@ -1,30 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 function Player({ currentSong, onNext, onPrev }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
-
-  const audioElement = document.querySelector("audio");
+  const audioRef = useRef(null);
 
   const togglePlay = () => {
-    if (!currentSong) {
+    if (!currentSong || !audioRef.current) {
       return;
     }
 
     if (isPlaying) {
-      audioElement.pause();
+      audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioElement.play();
+      audioRef.current.play();
       setIsPlaying(true);
     }
   };
 
   // Auto-play when currentSong changes
   useEffect(() => {
-    if (currentSong && audioElement) {
-      audioElement
+    if (currentSong && audioRef.current) {
+      audioRef.current.load(); // Reload the audio element with new source
+      audioRef.current
         .play()
         .then(() => {
           setIsPlaying(true);
@@ -37,32 +37,41 @@ function Player({ currentSong, onNext, onPrev }) {
   }, [currentSong]);
 
   const toggleShuffle = () => {
-    if (onNext) {
-      setIsShuffle(!isShuffle);
-      onNext(isShuffle);
-    } else if (onPrev) {
-      setIsShuffle(!isShuffle);
-      onPrev(isShuffle);
-    }
+    setIsShuffle(!isShuffle);
   };
+
   const toggleRepeat = () => {
     setIsRepeat(!isRepeat);
   };
 
-  const handleEnded = () => {
-    if (isRepeat) {
-      audioElement.currentTime = 0;
-      audioElement.play();
-    } else if (isShuffle) {
+  const handleNext = () => {
+    if (onNext) {
       onNext(isShuffle);
-    } else {
-      onNext(true);
     }
   };
 
-  const album_image = currentSong
-    ? currentSong.album_image
-    : "./assets/images/f7e16ae6e49d9b88d484406107534e5b.jpg";
+  const handlePrev = () => {
+    if (onPrev) {
+      onPrev(isShuffle);
+    }
+  };
+
+  const handleEnded = () => {
+    if (isRepeat) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+    } else {
+      handleNext();
+    }
+  };
+
+  // Handle audio events
+  const handlePlay = () => setIsPlaying(true);
+  const handlePause = () => setIsPlaying(false);
+
+  const album_image =
+    currentSong?.image ||
+    "./assets/images/f7e16ae6e49d9b88d484406107534e5b.jpg";
 
   return (
     <>
@@ -71,15 +80,14 @@ function Player({ currentSong, onNext, onPrev }) {
         style={{ backgroundImage: `url(${album_image})` }}
       >
         <audio
+          ref={audioRef}
           hidden
-          src={currentSong ? currentSong.audio : ""}
           onEnded={handleEnded}
+          onPlay={handlePlay}
+          onPause={handlePause}
           className="w-full h-full rounded-lg"
         >
-          <source
-            src={currentSong ? currentSong.audio : ""}
-            type="audio/mpeg"
-          />
+          <source src={currentSong?.audio || ""} type="audio/mpeg" />
         </audio>
       </div>
       <div className="flex items-center justify-center gap-3 p-4 bg-gray-200 rounded-lg text-gray-500">
@@ -104,6 +112,7 @@ function Player({ currentSong, onNext, onPrev }) {
         </button>
 
         <button
+          onClick={handlePrev}
           id="previous"
           type="button"
           className="w-fit cursor-pointer transition duration-300 transform hover:scale-125"
@@ -130,7 +139,7 @@ function Player({ currentSong, onNext, onPrev }) {
               xmlns="http://www.w3.org/2000/svg"
               width="24"
               height="24"
-              className={isPlaying ? "text-green-500" : ""}
+              className="text-green-500"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -141,7 +150,7 @@ function Player({ currentSong, onNext, onPrev }) {
               xmlns="http://www.w3.org/2000/svg"
               width="24"
               height="24"
-              className={isPlaying ? "" : "text-gray-500"}
+              className="text-gray-500"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -151,6 +160,7 @@ function Player({ currentSong, onNext, onPrev }) {
         </button>
 
         <button
+          onClick={handleNext}
           id="next"
           type="button"
           className="w-fit cursor-pointer transition duration-300 transform hover:scale-125"
@@ -176,7 +186,7 @@ function Player({ currentSong, onNext, onPrev }) {
             xmlns="http://www.w3.org/2000/svg"
             width="24"
             height="24"
-            className={isRepeat ? "text-green-500" : ""}
+            className={isRepeat ? "text-green-500" : "text-gray-500"}
             fill="currentColor"
             viewBox="0 0 24 24"
           >
